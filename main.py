@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 import private
 
 
-def open_cache_page(url):
+def open_cache_page(url, posted):
 
   clean = url.strip()
 
@@ -77,7 +77,33 @@ def open_cache_page(url):
   html = browser.get_current_page()
   link = html.find('a', {'id': 'ctl00_ContentBody_uxEditGeocacheLink'})
   href = link['href']
-  print('Edit page href = {}'.format(href))
+
+  try:
+    print("Following link to cache edit page at URL: {}".format(link))
+    response = browser.follow_link(link)
+    print("  Page fetch response: {}".format(response))
+  except:
+    print("Unexpected error:", sys.exc_info()[0])
+    raise
+
+  try:
+    if not browser.select_form('form[id="aspnetForm"]'):
+      print("  Unable to open cache edit form!")
+      return False
+  except:
+    print("Unexpected error:", sys.exc_info()[0])
+    raise
+
+  browser.select_form().print_summary()
+  browser["ctl00$ContentBody$tbPostedCoordinates"] = posted
+
+  try:
+    print("Submitting the cache listing changes.")
+    response = browser.submit_selected()
+    print("  Form submit response: {}".format(response))
+  except:
+    print("Unexpected error:", sys.exc_info()[0])
+    raise
 
   return True
 
@@ -100,7 +126,8 @@ def main():
       for row in reader:
         url = row['GC Code']
         if url:
-          page = open_cache_page(url)
+          posted = row['Posted']
+          page = open_cache_page(url, posted)
 
 
  
